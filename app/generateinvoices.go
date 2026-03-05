@@ -12,7 +12,7 @@ type Client struct {
 }
 
 // Populate the clients slice with names and CPFs
-var clients = []Client{
+var Clients = []Client{
 	{Name: "Kaladin Stormblessed", Cpf: "020.663.580-02"},
 	{Name: "Cephandrius", Cpf: "141.255.290-78"},
 	{Name: "Xisis", Cpf: "729.804.760-48"},
@@ -30,7 +30,7 @@ func GenerateInvoices() []invoice.Invoice {
 
 	for i := 0; i <= 9; i++ {
 		// Pick a random client from the slice
-		client := clients[rand.IntN(len(clients))]
+		client := Clients[rand.IntN(len(Clients))]
 
 		amount := rand.IntN(800001) + 100000
 

@@ -7,7 +7,11 @@ import (
 )
 
 func Env(key string) string {
-	viper.SetConfigFile("./.env")
+	viper.SetConfigName(".env")
+	viper.SetConfigType("env")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("..")
+
 	err := viper.ReadInConfig()
 	if err != nil {
 		fmt.Println("error getting key from .env: ", err.Error())

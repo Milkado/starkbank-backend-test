@@ -16,7 +16,7 @@ func Listener(c *echo.Context) error {
 		return c.String(http.StatusInternalServerError, "failed to read body")
 	}
 
-	resp := webhookResponseParser(bytes)
+	resp := WebhookResponseParser(bytes)
 
 	signature := validateSignature(bytes, c.Request().Header.Get("Digital-Signature"))
 
@@ -33,6 +33,10 @@ func Listener(c *echo.Context) error {
 }
 
 func validateSignature(bytes []byte, signature string) bool {
+	if signature == "" {
+		helpers.Log("Error parsing: empty signature", "./logs/error.txt")
+		return false
+	}
 	_, strkError := Event.Parse(string(bytes), signature, helpers.Auth())
 
 	if strkError.Errors != nil {

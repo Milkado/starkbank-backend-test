@@ -4,7 +4,7 @@ import "encoding/json"
 
 type (
 	invoiceResp struct {
-		Event event `josn:"event"`
+		Event event `json:"event"`
 	}
 
 	event struct {
@@ -24,7 +24,7 @@ type (
 	}
 )
 
-func webhookResponseParser(body []byte) invoiceResp {
+func WebhookResponseParser(body []byte) invoiceResp {
 	resp := new(invoiceResp)
 
 	json.Unmarshal(body, resp)
