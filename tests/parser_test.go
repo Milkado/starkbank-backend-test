@@ -32,13 +32,10 @@ func TestParser_ValidJson(t *testing.T) {
 }
 
 func TestParser_InvalidJson(t *testing.T) {
-	// Malformed JSON (missing closing brace and quotes)
 	invalidPayload := []byte(`{"event": {"log": {"type": "credited"`)
 
 	resp := app.WebhookResponseParser(invalidPayload)
 
-	// In Go, json.Unmarshal returns an error which is ignored in WebhookResponseParser.
-	// We expect a zeroed-out struct or default values for uninitialized fields.
 	assert.Equal(t, "", resp.Event.Log.Type)
 	assert.Equal(t, 0, resp.Event.Log.Invoice.Amount)
 }

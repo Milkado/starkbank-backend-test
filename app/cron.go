@@ -15,7 +15,7 @@ func StartCron(c *echo.Context) error {
 	newCron := cron.New()
 	cronId := uuid.New().String() //Id for logging
 
-	newCron.AddFunc("@every 1h", func() {
+	newCron.AddFunc("@every 3h", func() {
 		CreateInvoice()
 		fmt.Println("Task ran at: ", time.Now().Format("2006-01-02 15:04:05"))
 	})
@@ -24,7 +24,7 @@ func StartCron(c *echo.Context) error {
 	message := "Cron: " + cronId + " started"
 	helpers.Log(message, "./logs/cron_times.txt")
 
-	stopAfter := 2 * time.Hour
+	stopAfter := 24 * time.Hour
 
 	//Starts a Goroutine
 	go func() {

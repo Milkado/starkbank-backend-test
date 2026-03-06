@@ -1,0 +1,50 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.4'
+
+      - name: Run tests
+        # This will fail the deployment if any test fails
+        run: go test -v ./...
+
+      - name: Build binary
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o app_binary main.go
+
+      - name: Deploy to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "app_binary, .env.example"
+          target: "/home/ec2-user/app"
+
+      - name: Start Application
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Kill existing app if running
+            pkill app_binary || true
+            cd /home/ec2-user/app
+            # Rename example if real one doesn't exist (for first time setup)
+            [ ! -f .env ] && cp .env.example .env
+            # Start app in background
+            chmod +x app_binary
+            nohup ./app_binary > app.log 2>&1 &
