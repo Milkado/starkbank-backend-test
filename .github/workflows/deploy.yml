@@ -18,7 +18,10 @@ jobs:
           go-version: '1.25.4'
 
       - name: Run tests
-        # This will fail the deployment if any test fails
+        # Pass dummy environment variables so viper doesn't panic during tests
+        env:
+          PROJECT_ID: "dummy-project"
+          PRIVATE_KEY: "dummy-key"
         run: go test -v ./...
 
       - name: Build binary
