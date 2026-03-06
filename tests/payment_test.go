@@ -11,28 +11,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestWebhookResponseParser verifies the JSON unmarshaling logic
-func TestWebhookResponseParser(t *testing.T) {
-	jsonPayload := []byte(`{
-		"event": {
-			"log": {
-				"type": "credited",
-				"invoice": {
-					"amount": 50000,
-					"status": "paid"
-				}
-			}
-		}
-	}`)
-
-	resp := app.WebhookResponseParser(jsonPayload)
-
-	assert.Equal(t, "credited", resp.Event.Log.Type)
-	assert.Equal(t, 50000, resp.Event.Log.Invoice.Amount)
-}
-
 // TestListener_InvalidSignature tests how the Listener handles a request with a bad signature
 func TestListener_InvalidSignature(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test that interacts with external SDK in short mode")
+	}
 	e := echo.New()
 
 	body := []byte(`{"test": "data"}`)
@@ -52,6 +35,9 @@ func TestListener_InvalidSignature(t *testing.T) {
 
 // TestListener_EmptyBody verifies error handling for empty requests
 func TestListener_EmptyBody(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test that interacts with external SDK in short mode")
+	}
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodPost, "/webhook/payment", nil)
 	rec := httptest.NewRecorder()

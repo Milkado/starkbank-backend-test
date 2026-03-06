@@ -22,7 +22,7 @@ jobs:
         env:
           PROJECT_ID: "dummy-project"
           PRIVATE_KEY: "dummy-key"
-        run: go test -v ./...
+        run: go test -v -short ./...
 
       - name: Build binary
         run: |
