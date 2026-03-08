@@ -10,7 +10,7 @@ import (
 	"github.com/Milkado/stark-backend-test/helpers"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
-	"github.com/robfig/cron/v3"
+	cron "github.com/netresearch/go-cron"
 )
 
 func StartCron(c *echo.Context) error {
@@ -18,10 +18,10 @@ func StartCron(c *echo.Context) error {
 	cronId := uuid.New().String() //Id for logging
 	var wg sync.WaitGroup
 	var i = 1
-	newCron.AddFunc("@every 1h30m", func() {
+	newCron.AddFunc("@every 3s", func() {
 		wg.Add(1)
 		defer wg.Done()
-		CreateInvoice()
+		//CreateInvoice()
 		helpers.Log("Cont at: "+strconv.Itoa(i), "./logs/count_times.txt")
 		i++
 		fmt.Println("Task ran at: ", time.Now().Format("2006-01-02 15:04:05"))
@@ -31,7 +31,7 @@ func StartCron(c *echo.Context) error {
 	message := "Cron: " + cronId + " started"
 	helpers.Log(message, "./logs/cron_times.txt")
 
-	stopAfter := 12 * time.Hour
+	stopAfter := 24 * time.Second
 
 	//Starts a Goroutine
 	go func() {
@@ -39,8 +39,7 @@ func StartCron(c *echo.Context) error {
 		<-time.After(stopAfter)
 		fmt.Println("Stopping cron at: ", time.Now().String())
 
-		stopCtx := newCron.Stop()
-		<-stopCtx.Done()
+		newCron.StopAndWait()
 
 		// Ensure any running task finishes
 		wg.Wait()
