@@ -53,7 +53,7 @@ resource "aws_route_table_association" "public" {
 # Security Group
 resource "aws_security_group" "app_sg" {
   name        = "stark-backend-sg"
-  description = "Allow SSH and App traffic"
+  description = "Allow SSH, HTTP, HTTPS and App traffic"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -61,13 +61,21 @@ resource "aws_security_group" "app_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Change this to your IP for security
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
     description = "HTTP"
     from_port   = 80
     to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTPS"
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -92,20 +100,20 @@ resource "aws_security_group" "app_sg" {
   }
 }
 
-# Latest Amazon Linux 2 AMI
-data "aws_ami" "amazon_linux_2" {
+# Latest Amazon Linux 2023 AMI
+data "aws_ami" "amazon_linux_2023" {
   most_recent = true
   owners      = ["amazon"]
 
   filter {
     name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+    values = ["al2023-ami-2023.*-x86_64"]
   }
 }
 
 # EC2 Instance
 resource "aws_instance" "app_server" {
-  ami                    = data.aws_ami.amazon_linux_2.id
+  ami                    = data.aws_ami.amazon_linux_2023.id
   instance_type          = var.instance_type
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.app_sg.id]
@@ -113,14 +121,31 @@ resource "aws_instance" "app_server" {
 
   user_data = <<-EOF
               #!/bin/bash
-              yum update -y
-              yum install -y golang git nginx
+              dnf update -y
+              dnf install -y golang git nginx openssl
 
-              # Configure Nginx as a Reverse Proxy
-              # This forwards port 80 to port ${var.app_port}
+              # 1. Generate Self-Signed SSL Certificate
+              mkdir -p /etc/nginx/ssl
+              openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                -keyout /etc/nginx/ssl/server.key \
+                -out /etc/nginx/ssl/server.crt \
+                -subj "/C=US/ST=State/L=City/O=Organization/OU=Unit/CN=localhost"
+
+              # 2. Configure Nginx with HTTPS and Reverse Proxy
               cat <<EON > /etc/nginx/conf.d/app_proxy.conf
               server {
                   listen 80;
+                  server_name _;
+                  return 301 https://\$host\$request_uri; # Redirect HTTP to HTTPS
+              }
+
+              server {
+                  listen 443 ssl;
+                  server_name _;
+
+                  ssl_certificate /etc/nginx/ssl/server.crt;
+                  ssl_certificate_key /etc/nginx/ssl/server.key;
+
                   location / {
                       proxy_pass http://localhost:${var.app_port};
                       proxy_set_header Host \$host;
@@ -131,10 +156,7 @@ resource "aws_instance" "app_server" {
               }
               EON
 
-              # Remove default nginx config to avoid conflict
-              rm -f /etc/nginx/conf.d/default.conf
-
-              # Start Nginx
+              # Enable and Start Nginx
               systemctl enable nginx
               systemctl start nginx
 
