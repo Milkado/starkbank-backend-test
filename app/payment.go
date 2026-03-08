@@ -12,7 +12,7 @@ import (
 func Listener(c *echo.Context) error {
 	bytes, err := io.ReadAll(c.Request().Body)
 	if err != nil {
-		helpers.Log("error reading webhook body", "./logs/webhook_error.txt")
+		helpers.Log("error reading webhook body", "./logs/error.txt")
 		return c.String(http.StatusInternalServerError, "failed to read body")
 	}
 
@@ -26,7 +26,7 @@ func Listener(c *echo.Context) error {
 	}
 
 	if resp.Event.Log.Type == "credited" {
-		TranrferCredited(resp.Event.Log.Invoice.Amount)
+		TranrferCredited(resp.Event.Log.Invoice.Amount - resp.Event.Log.Invoice.Fee)
 	}
 
 	return c.String(http.StatusOK, "listened")

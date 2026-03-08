@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+
 	"github.com/Milkado/stark-backend-test/helpers"
 	"github.com/starkbank/sdk-go/starkbank/transfer"
 )
@@ -23,7 +25,10 @@ func TranrferCredited(amount int) {
 		for _, e := range err.Errors {
 			helpers.Log("Transfer error: "+e.Message, "./logs/error.txt")
 		}
+		return
 	}
 
-	helpers.Log(transfer[0].Id, "./logs/transfer.txt")
+	t := transfer[0]
+	amountFloat := float64(t.Amount) / 100.0
+	helpers.Log(t.Id+" to "+t.Name+" for amount "+fmt.Sprintf("%.2f", amountFloat), "./logs/transfer.txt")
 }

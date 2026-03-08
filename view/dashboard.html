@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Dashboard</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header-actions { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; }
+        .btn-start { background-color: #38a169; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        .btn-start:hover { background-color: #2f855a; }
+        .btn-start:disabled { background-color: #cbd5e0; cursor: not-allowed; }
+        .card { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
+        h1 { color: #1a202c; margin: 0; }
+        h2 { color: #2d3748; margin-top: 0; }
+        .log-list { list-style: none; padding: 0; max-height: 400px; overflow-y: auto; }
+        .log-item { padding: 10px; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; }
+        .log-item:last-child { border-bottom: none; }
+        .timestamp { font-weight: bold; color: #4a5568; margin-right: 15px; min-width: 180px; }
+        .message { flex-grow: 1; }
+        .status-started { color: #38a169; font-weight: bold; }
+        .status-stopped { color: #e53e3e; font-weight: bold; }
+        .status-transfer { color: #3182ce; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-actions">
+            <h1>Stark Backend Dashboard</h1>
+            <button id="start-btn" class="btn-start" onclick="startCron()">Start Cron Job</button>
+        </div>
+        
+        <div class="card">
+            <h2>Cron Executions</h2>
+            <ul class="log-list" id="cron-logs"></ul>
+        </div>
+
+        <div class="card">
+            <h2>Transfers</h2>
+            <ul class="log-list" id="transfer-logs"></ul>
+        </div>
+
+        <div class="card">
+            <h2>Created Invoices</h2>
+            <ul class="log-list" id="created-invoices"></ul>
+        </div>
+    </div>
+
+    <script>
+        async function startCron() {
+            const btn = document.getElementById('start-btn');
+            btn.disabled = true;
+            try {
+                const response = await fetch('/start-cron', { method: 'POST' });
+                const result = await response.text();
+                
+                if (response.status === 409) {
+                    alert('Conflict: ' + result);
+                } else if (!response.ok) {
+                    alert('Error: ' + result);
+                } else {
+                    alert('Success: ' + result);
+                }
+            } catch (error) {
+                alert('Failed to call /start-cron: ' + error.message);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function loadData() {
+            try {
+                const response = await fetch('/data');
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                const data = await response.json();
+                
+                const renderLogs = (elementId, logs) => {
+                    const list = document.getElementById(elementId);
+                    if (!logs || logs.length === 0) {
+                        list.innerHTML = '<li class="log-item">No logs found</li>';
+                        return;
+                    }
+                    
+                    list.innerHTML = logs.slice().reverse().map(log => {
+                        const message = log.message || log.Message || 'No message';
+                        const timestamp = log.timestamp || log.Timestamp || 'N/A';
+                        
+                        let msgClass = '';
+                        if (message.includes('started')) msgClass = 'status-started';
+                        if (message.includes('stopped')) msgClass = 'status-stopped';
+                        if (elementId === 'transfer-logs') msgClass = 'status-transfer';
+                        if (elementId === 'created-invoices') msgClass = 'status-started';
+                        
+                        return `
+                            <li class="log-item">
+                                <span class="timestamp">${timestamp}</span>
+                                <span class="message ${msgClass}">${message}</span>
+                            </li>
+                        `;
+                    }).join('');
+                };
+
+                renderLogs('cron-logs', data.cron_logs);
+                renderLogs('transfer-logs', data.transfer_logs);
+                renderLogs('created-invoices', data.created_invoices);
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        // Initial load
+        loadData();
+
+    </script>
+</body>
+</html>

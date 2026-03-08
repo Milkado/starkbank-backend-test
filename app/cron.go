@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -13,17 +12,28 @@ import (
 	cron "github.com/netresearch/go-cron"
 )
 
+var (
+	cronMutex     sync.Mutex
+	isCronRunning bool
+)
+
 func StartCron(c *echo.Context) error {
+	cronMutex.Lock()
+	if isCronRunning {
+		cronMutex.Unlock()
+		return c.String(http.StatusConflict, "A cron job is already running.")
+	}
+	isCronRunning = true
+	cronMutex.Unlock()
+
 	newCron := cron.New()
 	cronId := uuid.New().String() //Id for logging
 	var wg sync.WaitGroup
-	var i = 1
-	newCron.AddFunc("@every 3s", func() {
+
+	newCron.AddFunc("@every 3h", func() {
 		wg.Add(1)
-		defer wg.Done()
-		//CreateInvoice()
-		helpers.Log("Cont at: "+strconv.Itoa(i), "./logs/count_times.txt")
-		i++
+		defer wg.Done() //Ensures that last task is completed before shutting down (some times last task is skipped on AWS)
+		CreateInvoice()
 		fmt.Println("Task ran at: ", time.Now().Format("2006-01-02 15:04:05"))
 	})
 	newCron.Start()
@@ -31,10 +41,16 @@ func StartCron(c *echo.Context) error {
 	message := "Cron: " + cronId + " started"
 	helpers.Log(message, "./logs/cron_times.txt")
 
-	stopAfter := 24 * time.Second
+	stopAfter := 24 * time.Hour
 
 	//Starts a Goroutine
 	go func() {
+		defer func() {
+			cronMutex.Lock()
+			isCronRunning = false
+			cronMutex.Unlock()
+		}()
+
 		//Blocking call to sleep Goroutine for exactly 24h
 		<-time.After(stopAfter)
 		fmt.Println("Stopping cron at: ", time.Now().String())

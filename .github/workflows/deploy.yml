@@ -34,7 +34,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "app_binary, .env.example"
+          source: "app_binary, .env.example, view/"
           target: "/home/ec2-user/app"
 
       - name: Start Application
