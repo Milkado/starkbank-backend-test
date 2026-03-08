@@ -21,6 +21,5 @@ func CreateInvoice() {
 		return
 	}
 
-	fmt.Println("Succerfully created " + strconv.Itoa(len(invoices)) + "invoices")
-
+	fmt.Println("Succerfully created " + strconv.Itoa(len(invoices)) + " invoices")
 }
